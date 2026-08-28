@@ -4,6 +4,7 @@ const productController = require('../controllers/product-controller');
 const router =  Router();
 const {body} = require('express-validator')
 const authMiddleware = require('../middlewares/auth-middleware');
+const multer = require('multer');
 
 // auth
 router.post('/registration',
@@ -17,8 +18,16 @@ router.get('/refresh', userController.refresh);
 router.get('/users', authMiddleware, userController.getUsers);
 
 // product
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        files: 8,
+        fileSize: 6 * 1024 * 1024
+    }
+});
+
 router.get('/products', productController.getProducts);
-router.post('/create', productController.createProduct);
+router.post('/create', upload.array('img'), productController.createProduct);
 
 
 module.exports = router;
