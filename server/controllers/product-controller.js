@@ -1,16 +1,12 @@
-const fs = require('node:fs/promises');
-const path = require('node:path');
-const r2Service = require('../service/r2-service'); 
-
-
-const dbPath = path.join(process.cwd(), 'controllers', 'db.json');
+const r2Service = require('../service/r2-service');
+const ProductModel = require('../models/product-model');
 
 class productController {
     async getProducts(req, res, next) {
         try {
-            const db = JSON.parse(await fs.readFile(dbPath, 'utf8'));
+            const products = await ProductModel.find().sort({createdAt: -1})
 
-            res.json(db.products);
+            res.json(products);
         }
         catch (e) {
             console.log(e)
@@ -20,30 +16,25 @@ class productController {
 
     async createProduct(req, res, next) {
         try {
-            const db = JSON.parse(await fs.readFile(dbPath, 'utf8'));
+            const img = [];
 
             if (req.files && req.files.length > 0) {
-                const uploadedImagesNames = [];
-
                 for (const file of req.files) {
-                    const fileName = await r2Service.uploadImage(
+                    const url = await r2Service.uploadImage(
                         file.buffer,
                         file.originalname,
                         file.mimetype
                     );
-                    uploadedImagesNames.push(fileName);
+                    img.push(url);
                 }
-
-                req.body.img = uploadedImagesNames;
             }
 
-            // Convert FormData strings back to numbers for the DB
-            if (req.body.price) req.body.price = Number(req.body.price);
-            if (req.body.id) req.body.id = Number(req.body.id);
-
-
-            db.products.unshift(req.body);
-            await fs.writeFile(dbPath, JSON.stringify(db, null, 2));
+            const product = await ProductModel.create({
+                title: req.body.title,
+                price: req.body.price,
+                description: req.body.description,
+                img
+            })
 
             res.status(201).json(req.body);
         } catch (e) {
